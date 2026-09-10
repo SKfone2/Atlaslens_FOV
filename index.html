@@ -18,6 +18,7 @@
             --accent-cyan: #00d2ff;
             --accent-red: #ff4d4d;
             --accent-green: #34c759;
+            --accent-magenta: #ff007f;
             --text-main: #ececec;
             --text-muted: #a0a0ab;
             --border: #2a2a32;
@@ -70,7 +71,7 @@
             border-radius: 8px;
             padding: 10px 14px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
             gap: 10px;
             align-items: end;
         }
@@ -114,32 +115,12 @@
             opacity: 0.7;
         }
 
-        button.btn-primary {
-            background: var(--accent-gold);
-            color: #000;
-        }
+        button.btn-primary { background: var(--accent-gold); color: #000; }
+        button.btn-danger { background: var(--accent-red); color: #fff; }
+        button.btn-secondary { background: #282830; color: var(--text-main); border: 1px solid var(--border); }
+        button.btn-shutter { background: var(--accent-green); color: #000; }
 
-        button.btn-danger {
-            background: var(--accent-red);
-            color: #fff;
-        }
-
-        button.btn-secondary {
-            background: #282830;
-            color: var(--text-main);
-            border: 1px solid var(--border);
-        }
-
-        button.btn-shutter {
-            background: var(--accent-green);
-            color: #000;
-        }
-
-        .custom-inputs {
-            display: flex;
-            gap: 6px;
-        }
-
+        .custom-inputs { display: flex; gap: 6px; }
         .hidden { display: none !important; }
 
         .viewfinder-stage {
@@ -159,7 +140,7 @@
         canvas {
             width: 100%;
             height: auto;
-            max-height: 78vh;
+            max-height: 75vh;
             display: block;
             object-fit: contain;
         }
@@ -172,6 +153,7 @@
             padding: 6px 12px;
             border-radius: 6px;
             justify-content: space-around;
+            flex-wrap: wrap;
         }
 
         .stat-item {
@@ -181,16 +163,8 @@
             font-size: 0.8rem;
         }
 
-        .stat-item .lbl {
-            color: var(--text-muted);
-            font-size: 0.7rem;
-            text-transform: uppercase;
-        }
-
-        .stat-item .val {
-            color: var(--accent-gold);
-            font-weight: bold;
-        }
+        .stat-item .lbl { color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; }
+        .stat-item .val { color: var(--accent-gold); font-weight: bold; }
     </style>
 </head>
 <body>
@@ -200,7 +174,7 @@
     </div>
 
     <div class="container">
-        <!-- Horizontal Control Bar -->
+        <!-- Control Header -->
         <div class="controls-header">
             <div class="control-group">
                 <label for="cameraSelect">Camera / Sensor</label>
@@ -241,17 +215,30 @@
             </div>
 
             <div class="control-group">
+                <label for="overlaySelect">Delivery Aspect Guide</label>
+                <select id="overlaySelect">
+                    <option value="none">Off (Active Sensor Only)</option>
+                    <option value="2.39" selected>2.39:1 (Scope / Cinema)</option>
+                    <option value="2.00">2.00:1 (Univisium / Stream)</option>
+                    <option value="1.85">1.85:1 (Theatrical Flat)</option>
+                    <option value="1.78">16:9 (1.78:1 HD Broadcast)</option>
+                    <option value="1.00">1:1 (Square / Social)</option>
+                    <option value="all">Show All Guides</option>
+                </select>
+            </div>
+
+            <div class="control-group">
                 <label>Feed Control</label>
                 <button id="toggleCamBtn" class="btn-primary">Enable Camera</button>
             </div>
 
             <div class="control-group">
-                <label>Camera Direction</label>
-                <button id="flipCamBtn" class="btn-secondary">🔄 Flip Camera</button>
+                <label>Direction</label>
+                <button id="flipCamBtn" class="btn-secondary">🔄 Flip</button>
             </div>
 
             <div class="control-group">
-                <label>Capture Frame</label>
+                <label>Capture</label>
                 <button id="snapBtn" class="btn-shutter">📸 Save Still</button>
             </div>
         </div>
@@ -269,7 +256,7 @@
                 <span class="val" id="hfovVal">0°</span>
             </div>
             <div class="stat-item">
-                <span class="lbl">Desqueezed Aspect:</span>
+                <span class="lbl">Native Aspect:</span>
                 <span class="val" id="aspectVal">2.39:1</span>
             </div>
             <div class="stat-item">
@@ -293,6 +280,7 @@
         const customHeight = document.getElementById('customHeight');
         const seriesSelect = document.getElementById('seriesSelect');
         const focalSelect = document.getElementById('focalSelect');
+        const overlaySelect = document.getElementById('overlaySelect');
         const toggleCamBtn = document.getElementById('toggleCamBtn');
         const flipCamBtn = document.getElementById('flipCamBtn');
         const snapBtn = document.getElementById('snapBtn');
@@ -302,7 +290,7 @@
 
         let cameraActive = false;
         let currentStream = null;
-        let facingMode = "environment"; // Default rear camera ("environment" vs "user")
+        let facingMode = "environment";
 
         function populateFocals() {
             const series = seriesSelect.value;
@@ -360,7 +348,7 @@
 
         function updateButtonState() {
             if (cameraActive) {
-                toggleCamBtn.textContent = "Disable Camera";
+                toggleCamBtn.textContent = "Disable Feed";
                 toggleCamBtn.className = "btn-danger";
             } else {
                 toggleCamBtn.textContent = "Enable Camera";
@@ -373,7 +361,6 @@
             const focal = focalSelect.value;
             const filename = `Atlas_${series}_${focal}mm_${Date.now()}.png`;
 
-            // Convert canvas content directly into downloadable PNG data URL
             const dataURL = canvas.toDataURL('image/png');
             const link = document.createElement('a');
             link.download = filename;
@@ -381,11 +368,38 @@
             link.click();
         }
 
+        function drawGuideBox(frameRect, targetRatio, color, labelText) {
+            const currentRatio = frameRect.w / frameRect.h;
+            let guideW, guideH;
+
+            if (targetRatio <= currentRatio) {
+                guideH = frameRect.h;
+                guideW = guideH * targetRatio;
+            } else {
+                guideW = frameRect.w;
+                guideH = guideW / targetRatio;
+            }
+
+            const gx = frameRect.x + (frameRect.w - guideW) / 2;
+            const gy = frameRect.y + (frameRect.h - guideH) / 2;
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([8, 4]);
+            ctx.strokeRect(gx, gy, guideW, guideH);
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = color;
+            ctx.font = '11px -apple-system, sans-serif';
+            ctx.fillText(labelText, gx + 6, gy + 14);
+        }
+
         function render() {
             const [sensorW, sensorH] = getSensor();
             const series = seriesSelect.value;
             const squeeze = lensData[series].squeeze;
             const focal = parseFloat(focalSelect.value);
+            const overlayMode = overlaySelect.value;
 
             // Calculations
             const hfovRad = 2 * Math.atan((sensorW * squeeze) / (2 * focal));
@@ -403,7 +417,7 @@
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
 
-            // Target Desqueezed Aspect Box Bounds inside 1280x720 canvas
+            // Active Sensor Bounds inside 1280x720 stage
             const targetWidthRatio = nativeAspect * squeeze;
             let drawH = canvas.height - 40;
             let drawW = drawH * targetWidthRatio;
@@ -436,7 +450,6 @@
                 const srcX = (video.videoWidth - srcW) / 2;
                 const srcY = (video.videoHeight - srcH) / 2;
 
-                // Flip canvas horizontally if selfie mode ("user") to act like a mirror
                 if (facingMode === "user") {
                     ctx.translate(canvas.width, 0);
                     ctx.scale(-1, 1);
@@ -458,17 +471,30 @@
                 ctx.textAlign = 'left';
             }
 
-            // Matte Letterboxing
+            // Outer Sensor Letterbox Matte
             ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
             ctx.fillRect(0, 0, canvas.width, frameRect.y);
             ctx.fillRect(0, frameRect.y + frameRect.h, canvas.width, canvas.height - (frameRect.y + frameRect.h));
             ctx.fillRect(0, frameRect.y, frameRect.x, frameRect.h);
             ctx.fillRect(frameRect.x + frameRect.w, frameRect.y, canvas.width - (frameRect.x + frameRect.w), frameRect.h);
 
-            // Frame Line Border
+            // Active Sensor Border (Cyan Solid)
             ctx.strokeStyle = '#00d2ff';
             ctx.lineWidth = 3;
             ctx.strokeRect(frameRect.x, frameRect.y, frameRect.w, frameRect.h);
+
+            // Delivery Aspect Ratio Overlays
+            if (overlayMode === 'all') {
+                drawGuideBox(frameRect, 2.39, '#e5a93b', '2.39:1 Scope');
+                drawGuideBox(frameRect, 2.00, '#ff007f', '2.00:1 Stream');
+                drawGuideBox(frameRect, 1.85, '#34c759', '1.85:1 Flat');
+                drawGuideBox(frameRect, 1.78, '#ffffff', '16:9 HD');
+                drawGuideBox(frameRect, 1.00, '#a0a0ab', '1:1 Square');
+            } else if (overlayMode !== 'none') {
+                const ratio = parseFloat(overlayMode);
+                const label = `${ratio}:1 Guide`;
+                drawGuideBox(frameRect, ratio, '#e5a93b', label);
+            }
 
             // Center Crosshair
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
@@ -478,7 +504,7 @@
             ctx.moveTo(centerX, centerY - 16); ctx.lineTo(centerX, centerY + 16);
             ctx.stroke();
 
-            // On-screen Lens Metadata Overlay
+            // Lens Metadata Readout
             ctx.fillStyle = '#e5a93b';
             ctx.font = 'bold 16px -apple-system, sans-serif';
             ctx.fillText(`${series.toUpperCase()} ${focal}mm (${squeeze}x)`, frameRect.x + 14, frameRect.y + 26);
