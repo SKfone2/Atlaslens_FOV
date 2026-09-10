@@ -116,6 +116,10 @@
             font-size: 0.85rem;
             transition: opacity 0.15s ease;
             width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
         button:active { opacity: 0.7; }
@@ -200,6 +204,9 @@
             color: var(--accent-gold);
             font-weight: 500;
             letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .lookbook-actions {
@@ -254,6 +261,16 @@
             text-align: center;
             width: 100%;
             margin-top: 40px;
+        }
+
+        .binder-svg {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
     </style>
 </head>
@@ -339,7 +356,16 @@
 
             <div class="control-group">
                 <label>Project Deck</label>
-                <button id="openLookbookBtn" class="btn-lookbook">🖼️ Lookbook (<span id="shotCount">0</span>)</button>
+                <button id="openLookbookBtn" class="btn-lookbook">
+                    <svg class="binder-svg" viewBox="0 0 24 24">
+                        <rect x="5" y="3" width="16" height="18" rx="2"></rect>
+                        <line x1="5" y1="3" x2="5" y2="21"></line>
+                        <circle cx="3" cy="7" r="1.2" fill="currentColor"></circle>
+                        <circle cx="3" cy="12" r="1.2" fill="currentColor"></circle>
+                        <circle cx="3" cy="17" r="1.2" fill="currentColor"></circle>
+                    </svg>
+                    Lookbook (<span id="shotCount">0</span>)
+                </button>
             </div>
         </div>
 
@@ -369,7 +395,16 @@
     <!-- Lookbook Modal -->
     <div id="lookbookModal" class="lookbook-modal hidden">
         <div class="lookbook-header">
-            <div class="lookbook-title" id="lookbookHeaderTitle">🎬 Project Lookbook & Shot Deck</div>
+            <div class="lookbook-title" id="lookbookHeaderTitle">
+                <svg class="binder-svg" style="width:20px; height:20px;" viewBox="0 0 24 24">
+                    <rect x="5" y="3" width="16" height="18" rx="2"></rect>
+                    <line x1="5" y1="3" x2="5" y2="21"></line>
+                    <circle cx="3" cy="7" r="1.2" fill="currentColor"></circle>
+                    <circle cx="3" cy="12" r="1.2" fill="currentColor"></circle>
+                    <circle cx="3" cy="17" r="1.2" fill="currentColor"></circle>
+                </svg>
+                Project Lookbook & Shot Deck
+            </div>
             <div class="lookbook-actions">
                 <button id="exportPdfBtn" class="btn-primary" style="width: auto;">📄 Export PDF Shot Sheet</button>
                 <button id="clearLookbookBtn" class="btn-danger" style="width: auto;">🗑️ Clear Deck</button>
@@ -542,7 +577,16 @@
         function loadLookbook() {
             if (!db) return;
             const projectName = projectInput.value.trim() || "Untitled Project";
-            lookbookHeaderTitle.textContent = `🎬 ${projectName} — Shot Deck`;
+            lookbookHeaderTitle.innerHTML = `
+                <svg class="binder-svg" style="width:20px; height:20px;" viewBox="0 0 24 24">
+                    <rect x="5" y="3" width="16" height="18" rx="2"></rect>
+                    <line x1="5" y1="3" x2="5" y2="21"></line>
+                    <circle cx="3" cy="7" r="1.2" fill="currentColor"></circle>
+                    <circle cx="3" cy="12" r="1.2" fill="currentColor"></circle>
+                    <circle cx="3" cy="17" r="1.2" fill="currentColor"></circle>
+                </svg>
+                ${projectName} — Shot Deck
+            `;
             lookbookGrid.innerHTML = '';
 
             const tx = db.transaction("shots", "readonly");
@@ -707,9 +751,17 @@
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
 
-            // Active Sensor Bounds inside 1280x720 stage
+            // Calculate Effective Spherical Equivalent Focal Length
+            const effectiveFocal = focal / squeeze;
+
+            // Target Desqueezed Aspect Ratio Bounds inside stage
             const targetWidthRatio = nativeAspect * squeeze;
-            let drawH = canvas.height - 40;
+            
+            // Dynamic Frame Box Scaling for wide Mercury lenses (24mm, 27mm, 32mm, 36mm)
+            // Scale bounding frame dynamically when lens is wider than base camera FOV
+            const wideScaleFactor = Math.min(1, effectiveFocal / IPHONE_BASE_FOCAL);
+
+            let drawH = (canvas.height - 40) * wideScaleFactor;
             let drawW = drawH * targetWidthRatio;
 
             if (drawW > canvas.width - 40) {
@@ -724,7 +776,7 @@
                 h: drawH
             };
 
-            // Render camera stream with Anamorphic Squeeze + Optical Zoom
+            // Render camera stream with Anamorphic Squeeze + Dynamic Zoom
             if (cameraActive && video.readyState === video.HAVE_ENOUGH_DATA) {
                 ctx.save();
 
@@ -732,7 +784,6 @@
                 ctx.rect(frameRect.x, frameRect.y, frameRect.w, frameRect.h);
                 ctx.clip();
 
-                const effectiveFocal = focal / squeeze;
                 const zoomFactor = Math.max(1, effectiveFocal / IPHONE_BASE_FOCAL);
 
                 const srcW = video.videoWidth / zoomFactor;
