@@ -493,7 +493,6 @@
                 tx.objectStore("shots").add(shotRecord);
                 tx.oncomplete = () => {
                     updateShotCount();
-                    // Feedback effect on button
                     snapBtn.textContent = "✔ Saved!";
                     setTimeout(() => snapBtn.textContent = "📸 Save Still", 1200);
                 };
@@ -572,10 +571,12 @@
             }
         });
 
+        // iOS Pop-up Safe PDF Export Handler
         exportPdfBtn.addEventListener('click', () => {
             if (!db) return;
             const tx = db.transaction("shots", "readonly");
             const req = tx.objectStore("shots").getAll();
+
             req.onsuccess = () => {
                 const shots = req.result;
                 if (shots.length === 0) {
@@ -583,44 +584,40 @@
                     return;
                 }
 
-                const printWin = window.open('', '_blank');
                 let html = `
-                    <html>
-                    <head>
-                        <title>Atlas Viewfinder - Project Shot Sheet</title>
-                        <style>
-                            body { font-family: -apple-system, sans-serif; padding: 20px; color: #111; }
-                            h1 { border-bottom: 2px solid #111; padding-bottom: 8px; font-size: 22px; }
-                            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
-                            .item { border: 1px solid #ccc; border-radius: 6px; padding: 10px; page-break-inside: avoid; }
-                            .item img { width: 100%; height: auto; border: 1px solid #777; }
-                            .meta { font-size: 12px; margin-top: 8px; line-height: 1.4; }
-                        </style>
-                    </head>
-                    <body>
-                        <h1>ATLAS LENS CO. VIEWFINDER — PROJECT SHOT SHEET</h1>
-                        <p>Generated: ${new Date().toLocaleString()}</p>
-                        <div class="grid">
+                    <div id="pdfPrintContainer" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#fff; color:#000; z-index:99999; padding:20px; overflow-y:auto; font-family:-apple-system, sans-serif;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:10px; margin-bottom:20px;">
+                            <div>
+                                <h1 style="margin:0; font-size:20px; color:#000;">ATLAS LENS CO. VIEWFINDER — SHOT SHEET</h1>
+                                <p style="margin:4px 0 0 0; font-size:12px; color:#555;">Generated: ${new Date().toLocaleString()}</p>
+                            </div>
+                            <div style="display:flex; gap:10px;">
+                                <button onclick="window.print()" style="padding:8px 16px; background:#e5a93b; color:#000; border:none; font-weight:bold; border-radius:4px; cursor:pointer;">🖨️ Print / Save PDF</button>
+                                <button onclick="document.getElementById('pdfPrintContainer').remove()" style="padding:8px 16px; background:#333; color:#fff; border:none; font-weight:bold; border-radius:4px; cursor:pointer;">✖ Close</button>
+                            </div>
+                        </div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
                 `;
 
                 shots.forEach((shot, idx) => {
                     html += `
-                        <div class="item">
-                            <img src="${shot.image}" />
-                            <div class="meta">
+                        <div style="border:1px solid #ccc; border-radius:6px; padding:10px; background:#f9f9f9; page-break-inside:avoid;">
+                            <img src="${shot.image}" style="width:100%; height:auto; border:1px solid #999; border-radius:4px;" />
+                            <div style="font-size:12px; margin-top:8px; line-height:1.4; color:#222;">
                                 <strong>Shot #${idx + 1}</strong> — ${shot.series} ${shot.focal}<br/>
                                 <strong>Camera:</strong> ${shot.camera}<br/>
                                 <strong>HFOV / Aspect:</strong> ${shot.hfov} | ${shot.aspect}<br/>
-                                <small>${shot.timestamp}</small>
+                                <span style="color:#666; font-size:10px;">${shot.timestamp}</span>
                             </div>
                         </div>
                     `;
                 });
 
-                html += `</div></body></html>`;
-                printWin.document.write(html);
-                printWin.document.close();
-                setTimeout(() => printWin.print(), 500);
+                html += `</div></div>`;
+
+                const container = document.createElement('div');
+                container.innerHTML = html;
+                document.body.appendChild(container.firstElementChild);
             };
         });
 
