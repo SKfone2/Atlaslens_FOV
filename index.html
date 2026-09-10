@@ -113,7 +113,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 320px;
+            min-height: 340px;
         }
 
         video { display: none; }
@@ -202,7 +202,7 @@
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="val" id="hfovVal">0°</div>
-                    <div class="lbl">HFOV</div>
+                    <div class="lbl">Effective HFOV</div>
                 </div>
                 <div class="stat-card">
                     <div class="val" id="aspectVal">2.39:1</div>
@@ -222,6 +222,9 @@
             orion: { squeeze: 2.0, focals: [18, 21, 25, 32, 40, 50, 65, 80, 100, 138, 200] },
             mercury: { squeeze: 1.5, focals: [24, 27, 32, 36, 42, 54, 72, 95, 138] }
         };
+
+        // iPhone Main Wide lens focal length baseline (~24mm Full Frame equivalent)
+        const IPHONE_BASE_FOCAL = 24;
 
         const cameraSelect = document.getElementById('cameraSelect');
         const customGroup = document.getElementById('customGroup');
@@ -265,7 +268,6 @@
                 cameraActive = true;
                 startCamBtn.style.display = 'none';
             } catch (err) {
-                // Fallback to default camera if exact environment camera fails
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                     video.srcObject = stream;
@@ -283,6 +285,7 @@
             const squeeze = lensData[series].squeeze;
             const focal = parseFloat(focalSelect.value);
 
+            // Calculations
             const hfovRad = 2 * Math.atan((sensorW * squeeze) / (2 * focal));
             const hfovDeg = (hfovRad * (180 / Math.PI)).toFixed(1);
             const nativeAspect = sensorW / sensorH;
@@ -293,53 +296,76 @@
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Render live camera video background if active
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // Target Desqueezed Aspect Box Bounds
+            const targetWidthRatio = nativeAspect * squeeze;
+            let drawH = canvas.height - 60;
+            let drawW = drawH * targetWidthRatio;
+
+            if (drawW > canvas.width - 60) {
+                drawW = canvas.width - 60;
+                drawH = drawW / targetWidthRatio;
+            }
+
+            const frameRect = {
+                x: centerX - drawW / 2,
+                y: centerY - drawH / 2,
+                w: drawW,
+                h: drawH
+            };
+
+            // Render live camera video with Anamorphic Squeeze + Optical Zoom
             if (cameraActive && video.readyState === video.HAVE_ENOUGH_DATA) {
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                ctx.save();
+
+                // Clip video strictly inside active desqueezed frame box
+                ctx.beginPath();
+                ctx.rect(frameRect.x, frameRect.y, frameRect.w, frameRect.h);
+                ctx.clip();
+
+                // Effective focal crop ratio relative to iPhone's base lens
+                const effectiveFocal = focal / squeeze;
+                const zoomFactor = Math.max(1, effectiveFocal / IPHONE_BASE_FOCAL);
+
+                const srcW = video.videoWidth / zoomFactor;
+                const srcH = video.videoHeight / zoomFactor;
+                const srcX = (video.videoWidth - srcW) / 2;
+                const srcY = (video.videoHeight - srcH) / 2;
+
+                // Draw transformed, cropped, and unsqueezed camera feed
+                ctx.drawImage(video, srcX, srcY, srcW, srcH, frameRect.x, frameRect.y, frameRect.w, frameRect.h);
+                ctx.restore();
             } else {
                 ctx.fillStyle = '#08080a';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
 
-            // Draw Framelines & HUD
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
-            const scale = 7.5;
+            // Outer Masking (Letterbox / Pillarbox)
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+            ctx.fillRect(0, 0, canvas.width, frameRect.y);
+            ctx.fillRect(0, frameRect.y + frameRect.h, canvas.width, canvas.height - (frameRect.y + frameRect.h));
+            ctx.fillRect(0, frameRect.y, frameRect.x, frameRect.h);
+            ctx.fillRect(frameRect.x + frameRect.w, frameRect.y, canvas.width - (frameRect.x + frameRect.w), frameRect.h);
 
-            const rawW = sensorW * scale;
-            const rawH = sensorH * scale;
-            const desqueezedW = rawW * squeeze;
-
-            const maxW = canvas.width - 80;
-            const maxH = canvas.height - 80;
-            const fitScale = Math.min(maxW / desqueezedW, maxH / rawH);
-
-            const drawW = desqueezedW * fitScale;
-            const drawH = rawH * fitScale;
-
-            // Outer Masking
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
-            ctx.fillRect(0, 0, canvas.width, centerY - drawH / 2);
-            ctx.fillRect(0, centerY + drawH / 2, canvas.width, canvas.height - (centerY + drawH / 2));
-            ctx.fillRect(0, centerY - drawH / 2, centerX - drawW / 2, drawH);
-            ctx.fillRect(centerX + drawW / 2, centerY - drawH / 2, canvas.width - (centerX + drawW / 2), drawH);
-
-            // Active Frame Lines
+            // Active Frame Line Border
             ctx.strokeStyle = '#00d2ff';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(centerX - drawW / 2, centerY - drawH / 2, drawW, drawH);
+            ctx.lineWidth = 3;
+            ctx.strokeRect(frameRect.x, frameRect.y, frameRect.w, frameRect.h);
 
-            // Center Crosshair
+            // Crosshair
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(centerX - 12, centerY); ctx.lineTo(centerX + 12, centerY);
             ctx.moveTo(centerX, centerY - 12); ctx.lineTo(centerX, centerY + 12);
             ctx.stroke();
 
-            // Overlay Readout
+            // Lens Metadata Readout
             ctx.fillStyle = '#e5a93b';
             ctx.font = 'bold 14px -apple-system, sans-serif';
-            ctx.fillText(`${series.toUpperCase()} ${focal}mm (${squeeze}x)`, centerX - drawW / 2 + 8, centerY - drawH / 2 + 20);
+            ctx.fillText(`${series.toUpperCase()} ${focal}mm (${squeeze}x)`, frameRect.x + 10, frameRect.y + 22);
 
             requestAnimationFrame(render);
         }
