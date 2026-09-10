@@ -36,7 +36,6 @@
             color: var(--text-main);
             margin: 0;
             padding: 10px;
-            /* Safe area padding to clear iPhone notch / Dynamic Island / Status bar */
             padding-top: max(20px, env(safe-area-inset-top));
             padding-left: max(10px, env(safe-area-inset-left));
             padding-right: max(10px, env(safe-area-inset-right));
@@ -80,7 +79,7 @@
             border-radius: 8px;
             padding: 10px 14px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
             gap: 10px;
             align-items: end;
         }
@@ -196,7 +195,6 @@
             margin-top: 4px;
         }
 
-        /* Modal Overlay Drawer */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -345,7 +343,6 @@
             gap: 8px;
         }
 
-        /* --- MULTI-PAGE ADAPTIVE PRINT ENGINE --- */
         @media print {
             @page {
                 size: letter;
@@ -441,17 +438,22 @@
             </div>
 
             <div class="control-group">
-                <label for="cameraSelect">Camera / Sensor</label>
+                <label for="cameraSelect">Camera System</label>
                 <select id="cameraSelect">
-                    <option value="35.70,20.10">Sony FX6 (16:9)</option>
-                    <option value="35.90,23.90">Canon EOS R6 Mark III (3:2)</option>
-                    <option value="36.70,25.54">ARRI ALEXA Mini LF (Open Gate)</option>
-                    <option value="27.99,18.13">ARRI ALEXA 35 (4:3)</option>
-                    <option value="40.96,21.60">RED V-Raptor 8K VV</option>
-                    <option value="36.00,24.00">Sony Venice 2 (3:2)</option>
-                    <option value="10.07,7.56">Apple iPhone 16 Pro (Main 4:3)</option>
+                    <option value="sony_fx6">Sony FX6</option>
+                    <option value="arri_alexa_mini_lf">ARRI ALEXA Mini LF</option>
+                    <option value="arri_alexa_35">ARRI ALEXA 35</option>
+                    <option value="sony_venice_2">Sony Venice 2</option>
+                    <option value="red_v_raptor">RED V-Raptor 8K VV</option>
+                    <option value="canon_r6m3">Canon EOS R6 Mark III</option>
+                    <option value="iphone16pro">Apple iPhone 16 Pro</option>
                     <option value="custom">Custom Dimensions</option>
                 </select>
+            </div>
+
+            <div class="control-group" id="modeGroup">
+                <label for="modeSelect">Readout Mode</label>
+                <select id="modeSelect"></select>
             </div>
 
             <div id="customGroup" class="control-group custom-inputs hidden">
@@ -596,6 +598,71 @@
     </div>
 
     <script>
+        // CAMERA RESOLUTION & READOUT MODES DATABASE
+        const cameraDatabase = {
+            sony_fx6: {
+                label: "Sony FX6",
+                modes: [
+                    { name: "FF 4K DCI (16:9)", w: 35.70, h: 20.10 },
+                    { name: "FF 4K UHD (16:9)", w: 35.60, h: 20.00 },
+                    { name: "S35 2K DCI (16:9 Crop)", w: 23.80, h: 13.40 }
+                ]
+            },
+            arri_alexa_mini_lf: {
+                label: "ARRI ALEXA Mini LF",
+                modes: [
+                    { name: "4.5K 3:2 Open Gate", w: 36.70, h: 25.54 },
+                    { name: "4.5K LF 2.39:1 Scope", w: 36.70, h: 15.31 },
+                    { name: "4K UHD 16:9", w: 31.68, h: 17.82 },
+                    { name: "2.8K 1:1 Anamorphic", w: 25.54, h: 25.54 }
+                ]
+            },
+            arri_alexa_35: {
+                label: "ARRI ALEXA 35",
+                modes: [
+                    { name: "4.6K 3:2 Open Gate", w: 27.99, h: 19.22 },
+                    { name: "4.6K 16:9", w: 27.99, h: 15.74 },
+                    { name: "4K 2:1", w: 25.60, h: 12.80 },
+                    { name: "3.3K 6:5 Anamorphic", w: 22.12, h: 18.43 },
+                    { name: "2.7K 4:3 Anamorphic", w: 21.12, h: 15.84 }
+                ]
+            },
+            sony_venice_2: {
+                label: "Sony Venice 2 (8K)",
+                modes: [
+                    { name: "8.6K 3:2 Open Gate", w: 35.90, h: 24.00 },
+                    { name: "8.2K 17:9", w: 35.90, h: 19.00 },
+                    { name: "5.8K 6:5 Anamorphic", w: 24.70, h: 20.60 },
+                    { name: "5.8K 4:3 Anamorphic", w: 24.70, h: 18.50 }
+                ]
+            },
+            red_v_raptor: {
+                label: "RED V-Raptor 8K VV",
+                modes: [
+                    { name: "8K 17:9 Full Format", w: 40.96, h: 21.60 },
+                    { name: "8K 2:1", w: 40.96, h: 20.48 },
+                    { name: "8K 16:9", w: 38.40, h: 21.60 },
+                    { name: "8K 6:5 Anamorphic", w: 25.92, h: 21.60 },
+                    { name: "6K S35 17:9 Crop", w: 30.72, h: 16.20 }
+                ]
+            },
+            canon_r6m3: {
+                label: "Canon EOS R6 Mark III",
+                modes: [
+                    { name: "FF 3:2 Open Gate", w: 35.90, h: 23.90 },
+                    { name: "FF 16:9 4K UHD", w: 35.90, h: 20.19 },
+                    { name: "S35 16:9 Crop", w: 22.50, h: 12.65 }
+                ]
+            },
+            iphone16pro: {
+                label: "Apple iPhone 16 Pro",
+                modes: [
+                    { name: "Main Sensor 4:3", w: 10.07, h: 7.56 },
+                    { name: "Main Sensor 16:9 Video", w: 10.07, h: 5.66 }
+                ]
+            }
+        };
+
         const lensData = {
             orion: { 
                 squeeze: 2.0, 
@@ -634,6 +701,8 @@
         const projectSelect = document.getElementById('projectSelect');
         const manageProjectsBtn = document.getElementById('manageProjectsBtn');
         const cameraSelect = document.getElementById('cameraSelect');
+        const modeSelect = document.getElementById('modeSelect');
+        const modeGroup = document.getElementById('modeGroup');
         const customGroup = document.getElementById('customGroup');
         const customWidth = document.getElementById('customWidth');
         const customHeight = document.getElementById('customHeight');
@@ -726,6 +795,46 @@
                     currentProjectName = "CLINCH";
                 }
             };
+        }
+
+        function populateCameraModes() {
+            const camKey = cameraSelect.value;
+            if (camKey === 'custom') {
+                modeGroup.classList.add('hidden');
+                customGroup.classList.remove('hidden');
+                return;
+            }
+
+            customGroup.classList.add('hidden');
+            modeGroup.classList.remove('hidden');
+            modeSelect.innerHTML = '';
+
+            const camObj = cameraDatabase[camKey];
+            if (camObj) {
+                camObj.modes.forEach((m, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = `${m.w},${m.h}`;
+                    opt.textContent = m.name;
+                    if (idx === 0) opt.selected = true;
+                    modeSelect.appendChild(opt);
+                });
+            }
+        }
+
+        function getSensor() {
+            if (cameraSelect.value === 'custom') {
+                return [parseFloat(customWidth.value) || 36, parseFloat(customHeight.value) || 24];
+            }
+            return modeSelect.value.split(',').map(Number);
+        }
+
+        function getFullCameraModeName() {
+            if (cameraSelect.value === 'custom') {
+                return `Custom (${customWidth.value} x ${customHeight.value}mm)`;
+            }
+            const camName = cameraDatabase[cameraSelect.value]?.label || "Camera";
+            const modeName = modeSelect.options[modeSelect.selectedIndex]?.text || "";
+            return `${camName} (${modeName})`;
         }
 
         projectSelect.addEventListener('change', () => {
@@ -849,7 +958,7 @@
                 const projectShots = shotsReq.result.filter(s => s.project === projectName);
 
                 const bundle = {
-                    atlas_version: "2.1",
+                    atlas_version: "2.2",
                     project: projectMeta,
                     shots: projectShots,
                     exported_at: new Date().toLocaleString()
@@ -926,13 +1035,6 @@
             };
         }
 
-        function getSensor() {
-            if (cameraSelect.value === 'custom') {
-                return [parseFloat(customWidth.value) || 36, parseFloat(customHeight.value) || 24];
-            }
-            return cameraSelect.value.split(',').map(Number);
-        }
-
         async function startCamera() {
             if (currentStream) {
                 currentStream.getTracks().forEach(track => track.stop());
@@ -981,7 +1083,7 @@
         function captureStill() {
             const series = seriesSelect.value.toUpperCase();
             const lensMeta = getSelectedLensMeta();
-            const cameraName = cameraSelect.options[cameraSelect.selectedIndex].text;
+            const cameraName = getFullCameraModeName();
             const dataURL = canvas.toDataURL('image/png');
             const timestamp = new Date().toLocaleString();
 
@@ -1051,7 +1153,7 @@
                             <div><strong>Project:</strong> ${shot.project}</div>
                             <div><strong>Lens:</strong> ${shot.series} ${shot.focal}</div>
                             <div><strong>Close Focus (MOD):</strong> ${shot.closeFocus || 'N/A'}</div>
-                            <div><strong>Camera/Sensor:</strong> ${shot.camera}</div>
+                            <div><strong>Camera/Readout:</strong> ${shot.camera}</div>
                             <div><strong>HFOV / Aspect:</strong> ${shot.hfov} | ${shot.aspect}</div>
                             <div><small>${shot.timestamp}</small></div>
                         </div>
@@ -1443,9 +1545,9 @@
         openLookbookBtn.addEventListener('click', loadLookbook);
         closeLookbookBtn.addEventListener('click', () => lookbookModal.classList.add('hidden'));
 
-        cameraSelect.addEventListener('change', () => {
-            if (cameraSelect.value === 'custom') customGroup.classList.remove('hidden');
-            else customGroup.classList.add('hidden');
+        cameraSelect.addEventListener('change', populateCameraModes);
+        modeSelect.addEventListener('change', () => {
+            // Force redraw on readout mode change
         });
 
         seriesSelect.addEventListener('change', populateFocals);
@@ -1453,6 +1555,7 @@
             // Force redraw on focal length change
         });
 
+        populateCameraModes();
         populateFocals();
         requestAnimationFrame(render);
     </script>
