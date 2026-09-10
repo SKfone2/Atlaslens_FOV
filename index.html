@@ -357,16 +357,32 @@
         }
 
         function captureStill() {
-            const series = seriesSelect.value.toUpperCase();
-            const focal = focalSelect.value;
-            const filename = `Atlas_${series}_${focal}mm_${Date.now()}.png`;
+    // Generate image from canvas
+    const dataURL = canvas.toDataURL('image/png');
 
-            const dataURL = canvas.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.download = filename;
-            link.href = dataURL;
-            link.click();
-        }
+    // Open the generated image in a new tab for direct long-press saving on iOS
+    const newTab = window.open();
+    if (newTab) {
+        newTab.document.write(`
+            <html>
+                <head>
+                    <title>Atlas Still Capture</title>
+                    <style>
+                        body { margin: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; color: #fff; font-family: -apple-system, sans-serif; }
+                        img { max-width: 100%; height: auto; border: 1px solid #333; }
+                        p { margin-top: 15px; font-size: 14px; color: #e5a93b; }
+                    </style>
+                </head>
+                <body>
+                    <img src="${dataURL}" alt="Atlas Viewfinder Still" />
+                    <p>Press and hold the image above and select <strong>"Save to Photos"</strong></p>
+                </body>
+            </html>
+        `);
+    } else {
+        alert("Please allow pop-ups for this app to save stills directly to your Photos.");
+    }
+}
 
         function drawGuideBox(frameRect, targetRatio, color, labelText) {
             const currentRatio = frameRect.w / frameRect.h;
