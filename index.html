@@ -12,13 +12,18 @@
 
     <style>
         :root {
-            --bg-color: #121214;
-            --card-bg: #1e1e24;
+            --bg-color: #0d0d0f;
+            --card-bg: #18181c;
             --accent-gold: #e5a93b;
             --accent-cyan: #00d2ff;
+            --accent-red: #ff4d4d;
             --text-main: #ececec;
             --text-muted: #a0a0ab;
-            --border: #33333d;
+            --border: #2a2a32;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
@@ -26,64 +31,77 @@
             background-color: var(--bg-color);
             color: var(--text-main);
             margin: 0;
-            padding: 15px;
+            padding: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
         }
 
-        h1 {
+        /* Landscape Suggestion Banner for Portrait view */
+        .landscape-notice {
+            background: rgba(229, 169, 59, 0.15);
+            border: 1px solid var(--accent-gold);
             color: var(--accent-gold);
-            margin: 0 0 5px 0;
-            font-size: 1.4rem;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            margin-bottom: 10px;
             text-align: center;
+            width: 100%;
+            max-width: 1280px;
         }
 
-        .subtitle {
-            color: var(--text-muted);
-            margin: 0 0 15px 0;
-            font-size: 0.85rem;
-            text-align: center;
+        @media (orientation: landscape) {
+            .landscape-notice { display: none; }
         }
 
         .container {
-            display: grid;
-            grid-template-columns: 320px 1fr;
-            gap: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
             width: 100%;
-            max-width: 1100px;
+            max-width: 1280px;
         }
 
-        @media (max-width: 800px) {
-            .container { grid-template-columns: 1fr; }
-        }
-
-        .panel {
+        /* Horizontal Controls Header */
+        .controls-header {
             background: var(--card-bg);
             border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 15px;
+            border-radius: 8px;
+            padding: 10px 14px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+            align-items: end;
         }
 
-        .control-group { margin-bottom: 12px; }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
 
         label {
-            display: block;
-            font-size: 0.75rem;
+            font-size: 0.65rem;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
             color: var(--text-muted);
             margin-bottom: 4px;
         }
 
         select, input, button {
             width: 100%;
-            padding: 10px;
-            background: #141418;
+            padding: 8px 10px;
+            background: #101013;
             border: 1px solid var(--border);
             border-radius: 6px;
             color: var(--text-main);
-            font-size: 0.9rem;
-            box-sizing: border-box;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        select:focus, input:focus {
+            border-color: var(--accent-gold);
         }
 
         button.btn-primary {
@@ -92,19 +110,25 @@
             font-weight: bold;
             cursor: pointer;
             border: none;
-            margin-top: 10px;
+        }
+
+        button.btn-danger {
+            background: var(--accent-red);
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
         }
 
         .custom-inputs {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 8px;
+            display: flex;
+            gap: 6px;
         }
 
         .hidden { display: none !important; }
 
-        .viewfinder-wrapper {
+        /* Full Width Viewfinder Stage */
+        .viewfinder-stage {
             position: relative;
             width: 100%;
             background: #000;
@@ -113,7 +137,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 340px;
+            border: 1px solid var(--border);
         }
 
         video { display: none; }
@@ -121,46 +145,51 @@
         canvas {
             width: 100%;
             height: auto;
+            max-height: 82vh;
             display: block;
+            object-fit: contain;
         }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-top: 15px;
-        }
-
-        .stat-card {
-            background: #141418;
+        .stats-bar {
+            display: flex;
+            gap: 15px;
+            background: #101013;
             border: 1px solid var(--border);
-            padding: 8px;
+            padding: 6px 12px;
             border-radius: 6px;
-            text-align: center;
+            justify-content: space-around;
         }
 
-        .stat-card .val {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: var(--accent-gold);
+        .stat-item {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            font-size: 0.8rem;
         }
 
-        .stat-card .lbl {
-            font-size: 0.65rem;
+        .stat-item .lbl {
             color: var(--text-muted);
+            font-size: 0.7rem;
             text-transform: uppercase;
+        }
+
+        .stat-item .val {
+            color: var(--accent-gold);
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-    <h1>ATLAS LENS CO. VIEWFINDER</h1>
-    <p class="subtitle">Anamorphic Lens Simulator & Framing Overlay</p>
+    <div class="landscape-notice">
+        🔄 Rotate your iPhone to <strong>Landscape Mode</strong> for maximum viewfinder size.
+    </div>
 
     <div class="container">
-        <div class="panel">
+        <!-- Horizontal Control Bar -->
+        <div class="controls-header">
             <div class="control-group">
-                <label for="cameraSelect">Target Camera / Sensor</label>
+                <label for="cameraSelect">Camera / Sensor</label>
                 <select id="cameraSelect">
                     <option value="35.70,20.10">Sony FX6 (16:9)</option>
                     <option value="35.90,23.90">Canon EOS R6 Mark III (3:2)</option>
@@ -171,16 +200,16 @@
                     <option value="10.07,7.56">Apple iPhone 16 Pro (Main 4:3)</option>
                     <option value="custom">Custom Dimensions</option>
                 </select>
+            </div>
 
-                <div id="customGroup" class="custom-inputs hidden">
-                    <div>
-                        <label for="customWidth">W (mm)</label>
-                        <input type="number" id="customWidth" value="36.00" step="0.1">
-                    </div>
-                    <div>
-                        <label for="customHeight">H (mm)</label>
-                        <input type="number" id="customHeight" value="24.00" step="0.1">
-                    </div>
+            <div id="customGroup" class="control-group custom-inputs hidden">
+                <div>
+                    <label for="customWidth">W (mm)</label>
+                    <input type="number" id="customWidth" value="36.00" step="0.1">
+                </div>
+                <div>
+                    <label for="customHeight">H (mm)</label>
+                    <input type="number" id="customHeight" value="24.00" step="0.1">
                 </div>
             </div>
 
@@ -197,23 +226,31 @@
                 <select id="focalSelect"></select>
             </div>
 
-            <button id="startCamBtn" class="btn-primary">Enable iPhone Camera Feed</button>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="val" id="hfovVal">0°</div>
-                    <div class="lbl">Effective HFOV</div>
-                </div>
-                <div class="stat-card">
-                    <div class="val" id="aspectVal">2.39:1</div>
-                    <div class="lbl">Desqueezed Aspect</div>
-                </div>
+            <div class="control-group">
+                <button id="toggleCamBtn" class="btn-primary">Enable Camera</button>
             </div>
         </div>
 
-        <div class="panel viewfinder-wrapper">
+        <!-- Large Landscape Viewfinder Area -->
+        <div class="viewfinder-stage">
             <video id="webcam" autoplay playsinline></video>
-            <canvas id="vfCanvas" width="960" height="540"></canvas>
+            <canvas id="vfCanvas" width="1280" height="720"></canvas>
+        </div>
+
+        <!-- Readout Bar -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="lbl">Effective HFOV:</span>
+                <span class="val" id="hfovVal">0°</span>
+            </div>
+            <div class="stat-item">
+                <span class="lbl">Desqueezed Aspect:</span>
+                <span class="val" id="aspectVal">2.39:1</span>
+            </div>
+            <div class="stat-item">
+                <span class="lbl">Spherical Equiv:</span>
+                <span class="val" id="equivVal">~0mm</span>
+            </div>
         </div>
     </div>
 
@@ -223,7 +260,6 @@
             mercury: { squeeze: 1.5, focals: [24, 27, 32, 36, 42, 54, 72, 95, 138] }
         };
 
-        // iPhone Main Wide lens focal length baseline (~24mm Full Frame equivalent)
         const IPHONE_BASE_FOCAL = 24;
 
         const cameraSelect = document.getElementById('cameraSelect');
@@ -232,12 +268,13 @@
         const customHeight = document.getElementById('customHeight');
         const seriesSelect = document.getElementById('seriesSelect');
         const focalSelect = document.getElementById('focalSelect');
-        const startCamBtn = document.getElementById('startCamBtn');
+        const toggleCamBtn = document.getElementById('toggleCamBtn');
         const video = document.getElementById('webcam');
         const canvas = document.getElementById('vfCanvas');
         const ctx = canvas.getContext('2d');
 
         let cameraActive = false;
+        let currentStream = null;
 
         function populateFocals() {
             const series = seriesSelect.value;
@@ -260,22 +297,42 @@
 
         async function startCamera() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({
+                currentStream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: { exact: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
                     audio: false
                 });
-                video.srcObject = stream;
+                video.srcObject = currentStream;
                 cameraActive = true;
-                startCamBtn.style.display = 'none';
+                updateButtonState();
             } catch (err) {
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                    video.srcObject = stream;
+                    currentStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    video.srcObject = currentStream;
                     cameraActive = true;
-                    startCamBtn.style.display = 'none';
+                    updateButtonState();
                 } catch (e) {
                     alert("Unable to access camera: " + e.message);
                 }
+            }
+        }
+
+        function stopCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+            video.srcObject = null;
+            cameraActive = false;
+            updateButtonState();
+        }
+
+        function updateButtonState() {
+            if (cameraActive) {
+                toggleCamBtn.textContent = "Disable Camera";
+                toggleCamBtn.className = "btn-danger";
+            } else {
+                toggleCamBtn.textContent = "Enable Camera";
+                toggleCamBtn.className = "btn-primary";
             }
         }
 
@@ -290,22 +347,24 @@
             const hfovDeg = (hfovRad * (180 / Math.PI)).toFixed(1);
             const nativeAspect = sensorW / sensorH;
             const finalAspect = (nativeAspect * squeeze).toFixed(2);
+            const sphericalEquiv = Math.round(focal / squeeze);
 
             document.getElementById('hfovVal').textContent = `${hfovDeg}°`;
             document.getElementById('aspectVal').textContent = `${finalAspect}:1`;
+            document.getElementById('equivVal').textContent = `~${sphericalEquiv}mm`;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
 
-            // Target Desqueezed Aspect Box Bounds
+            // Target Desqueezed Aspect Box Bounds inside 1280x720 canvas
             const targetWidthRatio = nativeAspect * squeeze;
-            let drawH = canvas.height - 60;
+            let drawH = canvas.height - 40;
             let drawW = drawH * targetWidthRatio;
 
-            if (drawW > canvas.width - 60) {
-                drawW = canvas.width - 60;
+            if (drawW > canvas.width - 40) {
+                drawW = canvas.width - 40;
                 drawH = drawW / targetWidthRatio;
             }
 
@@ -316,16 +375,14 @@
                 h: drawH
             };
 
-            // Render live camera video with Anamorphic Squeeze + Optical Zoom
+            // Render camera stream with Anamorphic Squeeze + Optical Zoom
             if (cameraActive && video.readyState === video.HAVE_ENOUGH_DATA) {
                 ctx.save();
 
-                // Clip video strictly inside active desqueezed frame box
                 ctx.beginPath();
                 ctx.rect(frameRect.x, frameRect.y, frameRect.w, frameRect.h);
                 ctx.clip();
 
-                // Effective focal crop ratio relative to iPhone's base lens
                 const effectiveFocal = focal / squeeze;
                 const zoomFactor = Math.max(1, effectiveFocal / IPHONE_BASE_FOCAL);
 
@@ -334,47 +391,60 @@
                 const srcX = (video.videoWidth - srcW) / 2;
                 const srcY = (video.videoHeight - srcH) / 2;
 
-                // Draw transformed, cropped, and unsqueezed camera feed
                 ctx.drawImage(video, srcX, srcY, srcW, srcH, frameRect.x, frameRect.y, frameRect.w, frameRect.h);
                 ctx.restore();
             } else {
                 ctx.fillStyle = '#08080a';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = '#a0a0ab';
+                ctx.font = '16px -apple-system, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('Camera Feed Disabled', centerX, centerY);
+                ctx.textAlign = 'left';
             }
 
-            // Outer Masking (Letterbox / Pillarbox)
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+            // Matte Letterboxing
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
             ctx.fillRect(0, 0, canvas.width, frameRect.y);
             ctx.fillRect(0, frameRect.y + frameRect.h, canvas.width, canvas.height - (frameRect.y + frameRect.h));
             ctx.fillRect(0, frameRect.y, frameRect.x, frameRect.h);
             ctx.fillRect(frameRect.x + frameRect.w, frameRect.y, canvas.width - (frameRect.x + frameRect.w), frameRect.h);
 
-            // Active Frame Line Border
+            // Frame Line Border
             ctx.strokeStyle = '#00d2ff';
             ctx.lineWidth = 3;
             ctx.strokeRect(frameRect.x, frameRect.y, frameRect.w, frameRect.h);
 
-            // Crosshair
+            // Center Crosshair
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(centerX - 12, centerY); ctx.lineTo(centerX + 12, centerY);
-            ctx.moveTo(centerX, centerY - 12); ctx.lineTo(centerX, centerY + 12);
+            ctx.moveTo(centerX - 16, centerY); ctx.lineTo(centerX + 16, centerY);
+            ctx.moveTo(centerX, centerY - 16); ctx.lineTo(centerX, centerY + 16);
             ctx.stroke();
 
-            // Lens Metadata Readout
+            // On-screen Lens Metadata Overlay
             ctx.fillStyle = '#e5a93b';
-            ctx.font = 'bold 14px -apple-system, sans-serif';
-            ctx.fillText(`${series.toUpperCase()} ${focal}mm (${squeeze}x)`, frameRect.x + 10, frameRect.y + 22);
+            ctx.font = 'bold 16px -apple-system, sans-serif';
+            ctx.fillText(`${series.toUpperCase()} ${focal}mm (${squeeze}x)`, frameRect.x + 14, frameRect.y + 26);
 
             requestAnimationFrame(render);
         }
 
-        startCamBtn.addEventListener('click', startCamera);
+        toggleCamBtn.addEventListener('click', () => {
+            if (cameraActive) {
+                stopCamera();
+            } else {
+                startCamera();
+            }
+        });
+
         cameraSelect.addEventListener('change', () => {
             if (cameraSelect.value === 'custom') customGroup.classList.remove('hidden');
             else customGroup.classList.add('hidden');
         });
+
         seriesSelect.addEventListener('change', populateFocals);
 
         populateFocals();
