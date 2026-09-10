@@ -17,6 +17,7 @@
             --accent-gold: #e5a93b;
             --accent-cyan: #00d2ff;
             --accent-red: #ff4d4d;
+            --accent-green: #34c759;
             --text-main: #ececec;
             --text-muted: #a0a0ab;
             --border: #2a2a32;
@@ -38,7 +39,6 @@
             min-height: 100vh;
         }
 
-        /* Landscape Suggestion Banner for Portrait view */
         .landscape-notice {
             background: rgba(229, 169, 59, 0.15);
             border: 1px solid var(--accent-gold);
@@ -64,14 +64,13 @@
             max-width: 1280px;
         }
 
-        /* Horizontal Controls Header */
         .controls-header {
             background: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: 8px;
             padding: 10px 14px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 10px;
             align-items: end;
         }
@@ -104,20 +103,36 @@
             border-color: var(--accent-gold);
         }
 
-        button.btn-primary {
-            background: var(--accent-gold);
-            color: #000;
+        button {
             font-weight: bold;
             cursor: pointer;
             border: none;
+            transition: opacity 0.15s ease;
+        }
+
+        button:active {
+            opacity: 0.7;
+        }
+
+        button.btn-primary {
+            background: var(--accent-gold);
+            color: #000;
         }
 
         button.btn-danger {
             background: var(--accent-red);
             color: #fff;
-            font-weight: bold;
-            cursor: pointer;
-            border: none;
+        }
+
+        button.btn-secondary {
+            background: #282830;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
+
+        button.btn-shutter {
+            background: var(--accent-green);
+            color: #000;
         }
 
         .custom-inputs {
@@ -127,7 +142,6 @@
 
         .hidden { display: none !important; }
 
-        /* Full Width Viewfinder Stage */
         .viewfinder-stage {
             position: relative;
             width: 100%;
@@ -145,7 +159,7 @@
         canvas {
             width: 100%;
             height: auto;
-            max-height: 82vh;
+            max-height: 78vh;
             display: block;
             object-fit: contain;
         }
@@ -227,11 +241,22 @@
             </div>
 
             <div class="control-group">
+                <label>Feed Control</label>
                 <button id="toggleCamBtn" class="btn-primary">Enable Camera</button>
+            </div>
+
+            <div class="control-group">
+                <label>Camera Direction</label>
+                <button id="flipCamBtn" class="btn-secondary">🔄 Flip Camera</button>
+            </div>
+
+            <div class="control-group">
+                <label>Capture Frame</label>
+                <button id="snapBtn" class="btn-shutter">📸 Save Still</button>
             </div>
         </div>
 
-        <!-- Large Landscape Viewfinder Area -->
+        <!-- Viewfinder Stage -->
         <div class="viewfinder-stage">
             <video id="webcam" autoplay playsinline></video>
             <canvas id="vfCanvas" width="1280" height="720"></canvas>
@@ -269,12 +294,15 @@
         const seriesSelect = document.getElementById('seriesSelect');
         const focalSelect = document.getElementById('focalSelect');
         const toggleCamBtn = document.getElementById('toggleCamBtn');
+        const flipCamBtn = document.getElementById('flipCamBtn');
+        const snapBtn = document.getElementById('snapBtn');
         const video = document.getElementById('webcam');
         const canvas = document.getElementById('vfCanvas');
         const ctx = canvas.getContext('2d');
 
         let cameraActive = false;
         let currentStream = null;
+        let facingMode = "environment"; // Default rear camera ("environment" vs "user")
 
         function populateFocals() {
             const series = seriesSelect.value;
@@ -296,9 +324,13 @@
         }
 
         async function startCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+
             try {
                 currentStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: { exact: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+                    video: { facingMode: { ideal: facingMode }, width: { ideal: 1920 }, height: { ideal: 1080 } },
                     audio: false
                 });
                 video.srcObject = currentStream;
@@ -336,6 +368,19 @@
             }
         }
 
+        function captureStill() {
+            const series = seriesSelect.value.toUpperCase();
+            const focal = focalSelect.value;
+            const filename = `Atlas_${series}_${focal}mm_${Date.now()}.png`;
+
+            // Convert canvas content directly into downloadable PNG data URL
+            const dataURL = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = dataURL;
+            link.click();
+        }
+
         function render() {
             const [sensorW, sensorH] = getSensor();
             const series = seriesSelect.value;
@@ -364,7 +409,7 @@
             let drawW = drawH * targetWidthRatio;
 
             if (drawW > canvas.width - 40) {
-                drawW = canvas.width - 40;
+                drawW = canvas.width - 60;
                 drawH = drawW / targetWidthRatio;
             }
 
@@ -391,7 +436,16 @@
                 const srcX = (video.videoWidth - srcW) / 2;
                 const srcY = (video.videoHeight - srcH) / 2;
 
-                ctx.drawImage(video, srcX, srcY, srcW, srcH, frameRect.x, frameRect.y, frameRect.w, frameRect.h);
+                // Flip canvas horizontally if selfie mode ("user") to act like a mirror
+                if (facingMode === "user") {
+                    ctx.translate(canvas.width, 0);
+                    ctx.scale(-1, 1);
+                    const mirroredX = canvas.width - (frameRect.x + frameRect.w);
+                    ctx.drawImage(video, srcX, srcY, srcW, srcH, mirroredX, frameRect.y, frameRect.w, frameRect.h);
+                } else {
+                    ctx.drawImage(video, srcX, srcY, srcW, srcH, frameRect.x, frameRect.y, frameRect.w, frameRect.h);
+                }
+
                 ctx.restore();
             } else {
                 ctx.fillStyle = '#08080a';
@@ -432,13 +486,18 @@
             requestAnimationFrame(render);
         }
 
+        // Event Listeners
         toggleCamBtn.addEventListener('click', () => {
-            if (cameraActive) {
-                stopCamera();
-            } else {
-                startCamera();
-            }
+            if (cameraActive) stopCamera();
+            else startCamera();
         });
+
+        flipCamBtn.addEventListener('click', () => {
+            facingMode = (facingMode === "environment") ? "user" : "environment";
+            if (cameraActive) startCamera();
+        });
+
+        snapBtn.addEventListener('click', captureStill);
 
         cameraSelect.addEventListener('change', () => {
             if (cameraSelect.value === 'custom') customGroup.classList.remove('hidden');
