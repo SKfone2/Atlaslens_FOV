@@ -253,6 +253,11 @@
         <!-- Control Header -->
         <div class="controls-header">
             <div class="control-group">
+                <label for="projectInput">Project Title</label>
+                <input type="text" id="projectInput" placeholder="e.g. Feature Film 2026" value="Untitled Production">
+            </div>
+
+            <div class="control-group">
                 <label for="cameraSelect">Camera / Sensor</label>
                 <select id="cameraSelect">
                     <option value="35.70,20.10">Sony FX6 (16:9)</option>
@@ -350,7 +355,7 @@
     <!-- Lookbook Modal -->
     <div id="lookbookModal" class="lookbook-modal hidden">
         <div class="lookbook-header">
-            <div class="lookbook-title">🎬 Project Lookbook & Shot Deck</div>
+            <div class="lookbook-title" id="lookbookHeaderTitle">🎬 Project Lookbook & Shot Deck</div>
             <div class="lookbook-actions">
                 <button id="exportPdfBtn" class="btn-primary" style="width: auto;">📄 Export PDF Shot Sheet</button>
                 <button id="clearLookbookBtn" class="btn-danger" style="width: auto;">🗑️ Clear Deck</button>
@@ -368,6 +373,7 @@
 
         const IPHONE_BASE_FOCAL = 24;
 
+        const projectInput = document.getElementById('projectInput');
         const cameraSelect = document.getElementById('cameraSelect');
         const customGroup = document.getElementById('customGroup');
         const customWidth = document.getElementById('customWidth');
@@ -384,6 +390,7 @@
         const clearLookbookBtn = document.getElementById('clearLookbookBtn');
         const lookbookModal = document.getElementById('lookbookModal');
         const lookbookGrid = document.getElementById('lookbookGrid');
+        const lookbookHeaderTitle = document.getElementById('lookbookHeaderTitle');
         const shotCountEl = document.getElementById('shotCount');
         const video = document.getElementById('webcam');
         const canvas = document.getElementById('vfCanvas');
@@ -393,6 +400,15 @@
         let currentStream = null;
         let facingMode = "environment";
         let db = null;
+
+        // Restore saved project name if available
+        if (localStorage.getItem("atlas_project_name")) {
+            projectInput.value = localStorage.getItem("atlas_project_name");
+        }
+
+        projectInput.addEventListener('input', () => {
+            localStorage.setItem("atlas_project_name", projectInput.value);
+        });
 
         // --- IndexedDB Database Setup for Local Shot Deck ---
         const dbReq = indexedDB.open("AtlasLookbookDB", 1);
@@ -472,6 +488,7 @@
         }
 
         function captureStill() {
+            const projectName = projectInput.value.trim() || "Untitled Project";
             const series = seriesSelect.value.toUpperCase();
             const focal = focalSelect.value;
             const cameraName = cameraSelect.options[cameraSelect.selectedIndex].text;
@@ -479,6 +496,7 @@
             const timestamp = new Date().toLocaleString();
 
             const shotRecord = {
+                project: projectName,
                 image: dataURL,
                 series: series,
                 focal: `${focal}mm`,
@@ -510,7 +528,10 @@
 
         function loadLookbook() {
             if (!db) return;
+            const projectName = projectInput.value.trim() || "Untitled Project";
+            lookbookHeaderTitle.textContent = `🎬 ${projectName} — Shot Deck`;
             lookbookGrid.innerHTML = '';
+
             const tx = db.transaction("shots", "readonly");
             const req = tx.objectStore("shots").getAll();
 
@@ -527,13 +548,14 @@
                     card.innerHTML = `
                         <img src="${shot.image}" alt="Lookbook Still">
                         <div class="lookbook-card-info">
+                            <div><strong>Project:</strong> ${shot.project || projectName}</div>
                             <div><strong>Lens:</strong> ${shot.series} ${shot.focal}</div>
                             <div><strong>Camera/Sensor:</strong> ${shot.camera}</div>
                             <div><strong>HFOV / Aspect:</strong> ${shot.hfov} | ${shot.aspect}</div>
                             <div><small>${shot.timestamp}</small></div>
                         </div>
                         <div class="lookbook-card-btns">
-                            <button class="btn-secondary" onclick="downloadShot('${shot.image}', 'Atlas_${shot.series}_${shot.focal}.png')">💾 Download</button>
+                            <button class="btn-secondary" onclick="downloadShot('${shot.image}', '${(shot.project || projectName).replace(/\s+/g, '_')}_${shot.series}_${shot.focal}.png')">💾 Download</button>
                             <button class="btn-danger" onclick="deleteShot(${shot.id})">🗑️ Delete</button>
                         </div>
                     `;
@@ -574,6 +596,7 @@
         // iOS Pop-up Safe PDF Export Handler
         exportPdfBtn.addEventListener('click', () => {
             if (!db) return;
+            const projectName = projectInput.value.trim() || "Untitled Project";
             const tx = db.transaction("shots", "readonly");
             const req = tx.objectStore("shots").getAll();
 
@@ -588,8 +611,8 @@
                     <div id="pdfPrintContainer" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#fff; color:#000; z-index:99999; padding:20px; overflow-y:auto; font-family:-apple-system, sans-serif;">
                         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:10px; margin-bottom:20px;">
                             <div>
-                                <h1 style="margin:0; font-size:20px; color:#000;">ATLAS LENS CO. VIEWFINDER — SHOT SHEET</h1>
-                                <p style="margin:4px 0 0 0; font-size:12px; color:#555;">Generated: ${new Date().toLocaleString()}</p>
+                                <h1 style="margin:0; font-size:20px; color:#000;">${projectName.toUpperCase()} — SHOT SHEET</h1>
+                                <p style="margin:4px 0 0 0; font-size:12px; color:#555;">ATLAS LENS CO. VIEWFINDER | Generated: ${new Date().toLocaleString()}</p>
                             </div>
                             <div style="display:flex; gap:10px;">
                                 <button onclick="window.print()" style="padding:8px 16px; background:#e5a93b; color:#000; border:none; font-weight:bold; border-radius:4px; cursor:pointer;">🖨️ Print / Save PDF</button>
@@ -653,6 +676,7 @@
             const squeeze = lensData[series].squeeze;
             const focal = parseFloat(focalSelect.value);
             const overlayMode = overlaySelect.value;
+            const projectName = projectInput.value.trim() || "Untitled Project";
 
             // Calculations
             const hfovRad = 2 * Math.atan((sensorW * squeeze) / (2 * focal));
@@ -757,10 +781,17 @@
             ctx.moveTo(centerX, centerY - 16); ctx.lineTo(centerX, centerY + 16);
             ctx.stroke();
 
-            // Lens Metadata Readout
+            // On-screen Lens Metadata Readout (Top Left)
             ctx.fillStyle = '#e5a93b';
             ctx.font = 'bold 16px -apple-system, sans-serif';
             ctx.fillText(`${series.toUpperCase()} ${focal}mm (${squeeze}x)`, frameRect.x + 14, frameRect.y + 26);
+
+            // On-screen Project Title Burn-in (Top Right)
+            ctx.fillStyle = '#00d2ff';
+            ctx.font = 'bold 14px -apple-system, sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText(projectName.toUpperCase(), frameRect.x + frameRect.w - 14, frameRect.y + 26);
+            ctx.textAlign = 'left';
 
             requestAnimationFrame(render);
         }
