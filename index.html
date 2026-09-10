@@ -189,8 +189,8 @@
             text-transform: uppercase;
         }
 
-        /* Lookbook Overlay Drawer */
-        .lookbook-modal {
+        /* Modal Overlay Drawer */
+        .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(10, 10, 12, 0.95);
@@ -202,7 +202,7 @@
             font-family: var(--font-futura);
         }
 
-        .lookbook-header {
+        .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -213,7 +213,7 @@
             gap: 10px;
         }
 
-        .lookbook-title {
+        .modal-title {
             font-size: 1.2rem;
             color: var(--accent-gold);
             font-weight: 500;
@@ -223,7 +223,7 @@
             gap: 8px;
         }
 
-        .lookbook-actions {
+        .modal-actions {
             display: flex;
             gap: 10px;
             align-items: center;
@@ -287,6 +287,55 @@
             stroke-width: 2;
             stroke-linecap: round;
             stroke-linejoin: round;
+        }
+
+        /* Project Manager Modal Layout */
+        .project-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .project-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .project-card.active-project {
+            border-color: var(--accent-gold);
+            background: rgba(229, 169, 59, 0.08);
+        }
+
+        .project-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .project-info h3 {
+            margin: 0;
+            font-size: 1rem;
+            color: var(--text-main);
+        }
+
+        .project-info p {
+            margin: 0;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .project-card-actions {
+            display: flex;
+            gap: 8px;
         }
 
         /* --- MULTI-PAGE ADAPTIVE PRINT ENGINE --- */
@@ -377,8 +426,11 @@
         <!-- Control Header -->
         <div class="controls-header">
             <div class="control-group">
-                <label for="projectInput">Project Title</label>
-                <input type="text" id="projectInput" placeholder="e.g. Feature Film 2026" value="CLINCH">
+                <label for="projectSelect">Active Production</label>
+                <div style="display: flex; gap: 6px;">
+                    <select id="projectSelect"></select>
+                    <button id="manageProjectsBtn" class="btn-secondary" style="width: auto; padding: 6px 10px;" title="Manage Projects">⚙️</button>
+                </div>
             </div>
 
             <div class="control-group">
@@ -488,10 +540,10 @@
         </div>
     </div>
 
-    <!-- Lookbook Modal -->
-    <div id="lookbookModal" class="lookbook-modal hidden">
-        <div class="lookbook-header">
-            <div class="lookbook-title" id="lookbookHeaderTitle">
+    <!-- Lookbook Drawer Modal -->
+    <div id="lookbookModal" class="modal-overlay hidden">
+        <div class="modal-header">
+            <div class="modal-title" id="lookbookHeaderTitle">
                 <svg class="binder-svg" style="width:20px; height:20px;" viewBox="0 0 24 24">
                     <rect x="5" y="3" width="16" height="18" rx="2"></rect>
                     <line x1="5" y1="3" x2="5" y2="21"></line>
@@ -501,7 +553,7 @@
                 </svg>
                 Project Lookbook & Shot Deck
             </div>
-            <div class="lookbook-actions">
+            <div class="modal-actions">
                 <div style="display: flex; align-items: center; gap: 6px;">
                     <label style="margin: 0; color: var(--accent-gold); font-size: 0.7rem;">Print Layout:</label>
                     <select id="printLayoutSelect" style="width: auto; padding: 6px 8px;">
@@ -518,6 +570,20 @@
         <div id="lookbookGrid" class="lookbook-grid"></div>
     </div>
 
+    <!-- Project Manager Modal -->
+    <div id="projectModal" class="modal-overlay hidden">
+        <div class="modal-header">
+            <div class="modal-title">📁 Production Project Manager</div>
+            <div class="modal-actions">
+                <button id="createNewProjectBtn" class="btn-primary" style="width: auto;">➕ New Project</button>
+                <button id="importProjectBtn" class="btn-secondary" style="width: auto;">📥 Import .atlas Backup</button>
+                <input type="file" id="importFileInput" accept=".atlas,.json" class="hidden">
+                <button id="closeProjectModalBtn" class="btn-secondary" style="width: auto;">✖ Close</button>
+            </div>
+        </div>
+        <div class="project-list-container" id="projectListContainer"></div>
+    </div>
+
     <script>
         const lensData = {
             orion: { squeeze: 2.0, focals: [18, 21, 25, 32, 40, 50, 65, 80, 100, 138, 200] },
@@ -526,7 +592,8 @@
 
         const IPHONE_BASE_FOCAL = 24;
 
-        const projectInput = document.getElementById('projectInput');
+        const projectSelect = document.getElementById('projectSelect');
+        const manageProjectsBtn = document.getElementById('manageProjectsBtn');
         const cameraSelect = document.getElementById('cameraSelect');
         const customGroup = document.getElementById('customGroup');
         const customWidth = document.getElementById('customWidth');
@@ -547,6 +614,12 @@
         const lookbookGrid = document.getElementById('lookbookGrid');
         const lookbookHeaderTitle = document.getElementById('lookbookHeaderTitle');
         const shotCountEl = document.getElementById('shotCount');
+        const projectModal = document.getElementById('projectModal');
+        const projectListContainer = document.getElementById('projectListContainer');
+        const createNewProjectBtn = document.getElementById('createNewProjectBtn');
+        const importProjectBtn = document.getElementById('importProjectBtn');
+        const importFileInput = document.getElementById('importFileInput');
+        const closeProjectModalBtn = document.getElementById('closeProjectModalBtn');
         const video = document.getElementById('webcam');
         const canvas = document.getElementById('vfCanvas');
         const ctx = canvas.getContext('2d');
@@ -555,27 +628,243 @@
         let currentStream = null;
         let facingMode = "environment";
         let db = null;
+        let currentProjectName = localStorage.getItem("atlas_active_project") || "CLINCH";
 
-        if (localStorage.getItem("atlas_project_name")) {
-            projectInput.value = localStorage.getItem("atlas_project_name");
-        }
-
-        projectInput.addEventListener('input', () => {
-            localStorage.setItem("atlas_project_name", projectInput.value);
-        });
-
-        // IndexedDB Database Setup
-        const dbReq = indexedDB.open("AtlasLookbookDB", 1);
+        // --- IndexedDB Setup for Projects and Shots ---
+        const dbReq = indexedDB.open("AtlasViewfinderDB", 2);
         dbReq.onupgradeneeded = (e) => {
             db = e.target.result;
             if (!db.objectStoreNames.contains("shots")) {
                 db.createObjectStore("shots", { keyPath: "id", autoIncrement: true });
             }
+            if (!db.objectStoreNames.contains("projects")) {
+                const pStore = db.createObjectStore("projects", { keyPath: "name" });
+                pStore.add({ name: "CLINCH", status: "active", camera: cameraSelect.value, created: new Date().toLocaleString() });
+            }
         };
+
         dbReq.onsuccess = (e) => {
             db = e.target.result;
+            ensureDefaultProject();
+            loadProjectDropdown();
             updateShotCount();
         };
+
+        function ensureDefaultProject() {
+            if (!db) return;
+            const tx = db.transaction("projects", "readwrite");
+            const store = tx.objectStore("projects");
+            const req = store.get(currentProjectName);
+            req.onsuccess = () => {
+                if (!req.result) {
+                    store.add({ name: currentProjectName, status: "active", camera: cameraSelect.value, created: new Date().toLocaleString() });
+                }
+            };
+        }
+
+        function loadProjectDropdown() {
+            if (!db) return;
+            const tx = db.transaction("projects", "readonly");
+            const req = tx.objectStore("projects").getAll();
+
+            req.onsuccess = () => {
+                const projects = req.result;
+                projectSelect.innerHTML = '';
+                
+                projects.filter(p => p.status === 'active').forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.name;
+                    opt.textContent = p.name;
+                    if (p.name === currentProjectName) opt.selected = true;
+                    projectSelect.appendChild(opt);
+                });
+
+                if (projectSelect.options.length === 0) {
+                    const opt = document.createElement('option');
+                    opt.value = "CLINCH";
+                    opt.textContent = "CLINCH";
+                    projectSelect.appendChild(opt);
+                    currentProjectName = "CLINCH";
+                }
+            };
+        }
+
+        projectSelect.addEventListener('change', () => {
+            currentProjectName = projectSelect.value;
+            localStorage.setItem("atlas_active_project", currentProjectName);
+            updateShotCount();
+        });
+
+        manageProjectsBtn.addEventListener('click', () => {
+            renderProjectManager();
+            projectModal.classList.remove('hidden');
+        });
+
+        closeProjectModalBtn.addEventListener('click', () => projectModal.classList.add('hidden'));
+
+        function renderProjectManager() {
+            if (!db) return;
+            projectListContainer.innerHTML = '';
+
+            const tx = db.transaction("projects", "readonly");
+            const req = tx.objectStore("projects").getAll();
+
+            req.onsuccess = () => {
+                const projects = req.result;
+
+                projects.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = `project-card ${p.name === currentProjectName ? 'active-project' : ''}`;
+                    card.innerHTML = `
+                        <div class="project-info">
+                            <h3>${p.name} ${p.name === currentProjectName ? '⭐ (Active)' : ''}</h3>
+                            <p>Status: <strong>${p.status.toUpperCase()}</strong> | Created: ${p.created || 'N/A'}</p>
+                        </div>
+                        <div class="project-card-actions">
+                            ${p.name !== currentProjectName ? `<button class="btn-primary" onclick="switchActiveProject('${p.name}')">Activate</button>` : ''}
+                            <button class="btn-secondary" onclick="exportProjectBundle('${p.name}')">📦 Backup (.atlas)</button>
+                            ${p.status === 'active' ? `<button class="btn-secondary" onclick="toggleArchiveProject('${p.name}', 'archived')">📁 Archive</button>` : `<button class="btn-secondary" onclick="toggleArchiveProject('${p.name}', 'active')">📂 Unarchive</button>`}
+                            <button class="btn-danger" onclick="deleteProject('${p.name}')">🗑️ Delete</button>
+                        </div>
+                    `;
+                    projectListContainer.appendChild(card);
+                });
+            };
+        }
+
+        window.switchActiveProject = (name) => {
+            currentProjectName = name;
+            localStorage.setItem("atlas_active_project", name);
+            loadProjectDropdown();
+            updateShotCount();
+            renderProjectManager();
+        };
+
+        window.toggleArchiveProject = (name, newStatus) => {
+            const tx = db.transaction("projects", "readwrite");
+            const store = tx.objectStore("projects");
+            const req = store.get(name);
+            req.onsuccess = () => {
+                const proj = req.result;
+                if (proj) {
+                    proj.status = newStatus;
+                    store.put(proj);
+                    tx.oncomplete = () => {
+                        loadProjectDropdown();
+                        renderProjectManager();
+                    };
+                }
+            };
+        };
+
+        window.deleteProject = (name) => {
+            if (confirm(`Are you sure you want to delete project "${name}" and all associated stills?`)) {
+                const tx = db.transaction(["projects", "shots"], "readwrite");
+                tx.objectStore("projects").delete(name);
+
+                const shotStore = tx.objectStore("shots");
+                const shotReq = shotStore.getAll();
+                shotReq.onsuccess = () => {
+                    shotReq.result.forEach(s => {
+                        if (s.project === name) shotStore.delete(s.id);
+                    });
+                };
+
+                tx.oncomplete = () => {
+                    if (currentProjectName === name) {
+                        currentProjectName = "CLINCH";
+                        localStorage.setItem("atlas_active_project", "CLINCH");
+                        ensureDefaultProject();
+                    }
+                    loadProjectDropdown();
+                    updateShotCount();
+                    renderProjectManager();
+                };
+            }
+        };
+
+        createNewProjectBtn.addEventListener('click', () => {
+            const name = prompt("Enter New Project Title:");
+            if (name && name.trim()) {
+                const cleanName = name.trim();
+                const tx = db.transaction("projects", "readwrite");
+                tx.objectStore("projects").put({
+                    name: cleanName,
+                    status: "active",
+                    camera: cameraSelect.value,
+                    created: new Date().toLocaleString()
+                });
+                tx.oncomplete = () => {
+                    switchActiveProject(cleanName);
+                };
+            }
+        });
+
+        // EXPORT PORTABLE .ATLAS PROJECT BUNDLE
+        window.exportProjectBundle = (projectName) => {
+            const tx = db.transaction(["projects", "shots"], "readonly");
+            const projReq = tx.objectStore("projects").get(projectName);
+            const shotsReq = tx.objectStore("shots").getAll();
+
+            tx.oncomplete = () => {
+                const projectMeta = projReq.result || { name: projectName, status: "active" };
+                const projectShots = shotsReq.result.filter(s => s.project === projectName);
+
+                const bundle = {
+                    atlas_version: "2.0",
+                    project: projectMeta,
+                    shots: projectShots,
+                    exported_at: new Date().toLocaleString()
+                };
+
+                const jsonStr = JSON.stringify(bundle, null, 2);
+                const blob = new Blob([jsonStr], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `${projectName.replace(/\s+/g, '_')}_Backup.atlas`;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+        };
+
+        // IMPORT PORTABLE .ATLAS PROJECT BUNDLE
+        importProjectBtn.addEventListener('click', () => importFileInput.click());
+
+        importFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const bundle = JSON.parse(event.target.result);
+                    if (!bundle.project || !bundle.shots) {
+                        alert("Invalid .atlas bundle file.");
+                        return;
+                    }
+
+                    const tx = db.transaction(["projects", "shots"], "readwrite");
+                    tx.objectStore("projects").put(bundle.project);
+
+                    const shotStore = tx.objectStore("shots");
+                    bundle.shots.forEach(s => {
+                        delete s.id; // Allow auto-increment key assignment
+                        shotStore.add(s);
+                    });
+
+                    tx.oncomplete = () => {
+                        alert(`Project "${bundle.project.name}" imported successfully with ${bundle.shots.length} shots!`);
+                        switchActiveProject(bundle.project.name);
+                        renderProjectManager();
+                    };
+                } catch (err) {
+                    alert("Failed to parse bundle file: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+        });
 
         function populateFocals() {
             const series = seriesSelect.value;
@@ -642,7 +931,6 @@
         }
 
         function captureStill() {
-            const projectName = projectInput.value.trim() || "Untitled Project";
             const series = seriesSelect.value.toUpperCase();
             const focal = focalSelect.value;
             const cameraName = cameraSelect.options[cameraSelect.selectedIndex].text;
@@ -650,7 +938,7 @@
             const timestamp = new Date().toLocaleString();
 
             const shotRecord = {
-                project: projectName,
+                project: currentProjectName,
                 image: dataURL,
                 series: series,
                 focal: `${focal}mm`,
@@ -674,15 +962,15 @@
         function updateShotCount() {
             if (!db) return;
             const tx = db.transaction("shots", "readonly");
-            const countReq = tx.objectStore("shots").count();
-            countReq.onsuccess = () => {
-                shotCountEl.textContent = countReq.result;
+            const req = tx.objectStore("shots").getAll();
+            req.onsuccess = () => {
+                const count = req.result.filter(s => s.project === currentProjectName).length;
+                shotCountEl.textContent = count;
             };
         }
 
         function loadLookbook() {
             if (!db) return;
-            const projectName = projectInput.value.trim() || "Untitled Project";
             lookbookHeaderTitle.innerHTML = `
                 <svg class="binder-svg" style="width:20px; height:20px;" viewBox="0 0 24 24">
                     <rect x="5" y="3" width="16" height="18" rx="2"></rect>
@@ -691,7 +979,7 @@
                     <circle cx="3" cy="12" r="1.2" fill="currentColor"></circle>
                     <circle cx="3" cy="17" r="1.2" fill="currentColor"></circle>
                 </svg>
-                ${projectName} — Shot Deck
+                ${currentProjectName} — Shot Deck
             `;
             lookbookGrid.innerHTML = '';
 
@@ -699,9 +987,9 @@
             const req = tx.objectStore("shots").getAll();
 
             req.onsuccess = () => {
-                const shots = req.result;
+                const shots = req.result.filter(s => s.project === currentProjectName);
                 if (shots.length === 0) {
-                    lookbookGrid.innerHTML = '<div class="empty-msg">No shots captured yet. Snap a still from the viewfinder to build your deck!</div>';
+                    lookbookGrid.innerHTML = `<div class="empty-msg">No shots captured yet for project "${currentProjectName}". Snap a still from the viewfinder to build your deck!</div>`;
                     return;
                 }
 
@@ -711,14 +999,14 @@
                     card.innerHTML = `
                         <img src="${shot.image}" alt="Lookbook Still">
                         <div class="lookbook-card-info">
-                            <div><strong>Project:</strong> ${shot.project || projectName}</div>
+                            <div><strong>Project:</strong> ${shot.project}</div>
                             <div><strong>Lens:</strong> ${shot.series} ${shot.focal}</div>
                             <div><strong>Camera/Sensor:</strong> ${shot.camera}</div>
                             <div><strong>HFOV / Aspect:</strong> ${shot.hfov} | ${shot.aspect}</div>
                             <div><small>${shot.timestamp}</small></div>
                         </div>
                         <div class="lookbook-card-btns">
-                            <button class="btn-secondary" onclick="downloadShot('${shot.image}', '${(shot.project || projectName).replace(/\s+/g, '_')}_${shot.series}_${shot.focal}.png')">💾 Download</button>
+                            <button class="btn-secondary" onclick="downloadShot('${shot.image}', '${shot.project.replace(/\s+/g, '_')}_${shot.series}_${shot.focal}.png')">💾 Download</button>
                             <button class="btn-danger" onclick="deleteShot(${shot.id})">🗑️ Delete</button>
                         </div>
                     `;
@@ -746,9 +1034,15 @@
         };
 
         clearLookbookBtn.addEventListener('click', () => {
-            if (confirm("Are you sure you want to clear all stills from the project lookbook?")) {
+            if (confirm(`Are you sure you want to clear all stills from project "${currentProjectName}"?`)) {
                 const tx = db.transaction("shots", "readwrite");
-                tx.objectStore("shots").clear();
+                const store = tx.objectStore("shots");
+                const req = store.getAll();
+                req.onsuccess = () => {
+                    req.result.forEach(s => {
+                        if (s.project === currentProjectName) store.delete(s.id);
+                    });
+                };
                 tx.oncomplete = () => {
                     updateShotCount();
                     loadLookbook();
@@ -756,16 +1050,15 @@
             }
         });
 
-        // DIRECT PDF FILE GENERATOR (jsPDF with 1col/2col support)
+        // DIRECT PDF FILE GENERATOR (jsPDF)
         downloadPdfDirectBtn.addEventListener('click', () => {
             if (!db) return;
-            const projectName = projectInput.value.trim() || "Untitled Project";
-            const layout = printLayoutSelect.value; // '1col' or '2col'
+            const layout = printLayoutSelect.value;
             const tx = db.transaction("shots", "readonly");
             const req = tx.objectStore("shots").getAll();
 
             req.onsuccess = async () => {
-                const shots = req.result;
+                const shots = req.result.filter(s => s.project === currentProjectName);
                 if (shots.length === 0) {
                     alert("No shots to export!");
                     return;
@@ -780,7 +1073,7 @@
 
                 pdf.setFont("helvetica", "bold");
                 pdf.setFontSize(16);
-                pdf.text(`${projectName.toUpperCase()} — SHOT SHEET`, 40, yPos);
+                pdf.text(`${currentProjectName.toUpperCase()} — SHOT SHEET`, 40, yPos);
                 
                 pdf.setFont("helvetica", "normal");
                 pdf.setFontSize(8);
@@ -795,7 +1088,6 @@
                 yPos += 45;
 
                 if (layout === '1col') {
-                    // 1 SHOT PER ROW (LARGE)
                     const colWidth = pageWidth - 80;
                     const imgHeight = colWidth * (9 / 16);
 
@@ -824,7 +1116,6 @@
                         yPos += imgHeight + 45;
                     }
                 } else {
-                    // 2 SHOTS PER ROW (GRID)
                     const colWidth = (pageWidth - 100) / 2;
                     const imgHeight = colWidth * (9 / 16);
 
@@ -858,20 +1149,19 @@
                     }
                 }
 
-                pdf.save(`${projectName.replace(/\s+/g, '_')}_Shot_Sheet.pdf`);
+                pdf.save(`${currentProjectName.replace(/\s+/g, '_')}_Shot_Sheet.pdf`);
             };
         });
 
-        // PRINT OVERLAY HANDLER (Adaptive Multi-Page Printing)
+        // PRINT OVERLAY HANDLER
         exportPdfBtn.addEventListener('click', () => {
             if (!db) return;
-            const projectName = projectInput.value.trim() || "Untitled Project";
-            const layout = printLayoutSelect.value; // '1col' or '2col'
+            const layout = printLayoutSelect.value;
             const tx = db.transaction("shots", "readonly");
             const req = tx.objectStore("shots").getAll();
 
             req.onsuccess = () => {
-                const shots = req.result;
+                const shots = req.result.filter(s => s.project === currentProjectName);
                 if (shots.length === 0) {
                     alert("No shots to export!");
                     return;
@@ -886,7 +1176,7 @@
                     <div id="pdfPrintContainer">
                         <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:10px; margin-bottom:20px;">
                             <div>
-                                <h1 style="margin:0; font-size:20px; color:#000;">${projectName.toUpperCase()} — SHOT SHEET</h1>
+                                <h1 style="margin:0; font-size:20px; color:#000;">${currentProjectName.toUpperCase()} — SHOT SHEET</h1>
                                 <p style="margin:4px 0 0 0; font-size:12px; color:#555;">ATLAS LENS CO. VIEWFINDER | Total Shots: ${shots.length}</p>
                             </div>
                             <div style="display:flex; gap:10px;">
@@ -895,9 +1185,8 @@
                             </div>
                         </div>
 
-                        <!-- Document Header for Physical Prints -->
                         <div style="margin-bottom: 16px; border-bottom: 2px solid #000; padding-bottom: 6px;">
-                            <h1 style="margin: 0; font-size: 20px; color: #000; text-transform: uppercase;">${projectName} — SHOT SHEET</h1>
+                            <h1 style="margin: 0; font-size: 20px; color: #000; text-transform: uppercase;">${currentProjectName} — SHOT SHEET</h1>
                             <p style="margin: 4px 0 0 0; font-size: 11px; color: #666;">ATLAS LENS CO. VIEWFINDER | Total Shots: ${shots.length} | ${new Date().toLocaleString()}</p>
                             <p style="margin: 2px 0 0 0; font-size: 10px; color: #888;">*DISCLAIMER: For pre-visualization purposes only. Actual optical framing and distortion may vary on set.</p>
                         </div>
@@ -961,7 +1250,6 @@
             const squeeze = lensData[series].squeeze;
             const focal = parseFloat(focalSelect.value);
             const overlayMode = overlaySelect.value;
-            const projectName = projectInput.value.trim() || "Untitled Project";
 
             // Calculations
             const hfovRad = 2 * Math.atan((sensorW * squeeze) / (2 * focal));
@@ -998,7 +1286,7 @@
                 h: drawH
             };
 
-            // Render camera stream with Anamorphic Squeeze + Dynamic Zoom
+            // Render camera stream
             if (cameraActive && video.readyState === video.HAVE_ENOUGH_DATA) {
                 ctx.save();
 
@@ -1076,7 +1364,7 @@
             ctx.fillStyle = '#00d2ff';
             ctx.font = '500 14px "Futura-Medium", "Futura", sans-serif';
             ctx.textAlign = 'right';
-            ctx.fillText(projectName.toUpperCase(), frameRect.x + frameRect.w - 14, frameRect.y + 26);
+            ctx.fillText(currentProjectName.toUpperCase(), frameRect.x + frameRect.w - 14, frameRect.y + 26);
 
             // On-screen Pre-Vis Disclaimer Watermark (Bottom Center)
             ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
