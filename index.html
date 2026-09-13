@@ -452,7 +452,7 @@
             </div>
 
             <div class="control-group" id="modeGroup">
-                <label for="modeSelect">Readout Mode</label>
+                <label for="modeSelect">Readout & Resolution</label>
                 <select id="modeSelect"></select>
             </div>
 
@@ -598,67 +598,67 @@
     </div>
 
     <script>
-        // CAMERA RESOLUTION & READOUT MODES DATABASE
+        // CAMERA RESOLUTION & READOUT MODES DATABASE WITH PIXEL DIMENSIONS
         const cameraDatabase = {
             sony_fx6: {
                 label: "Sony FX6",
                 modes: [
-                    { name: "FF 4K DCI (16:9)", w: 35.70, h: 20.10 },
-                    { name: "FF 4K UHD (16:9)", w: 35.60, h: 20.00 },
-                    { name: "S35 2K DCI (16:9 Crop)", w: 23.80, h: 13.40 }
+                    { name: "FF 4K DCI (4096 x 2160)", w: 35.70, h: 20.10 },
+                    { name: "FF 4K UHD (3840 x 2160)", w: 35.60, h: 20.00 },
+                    { name: "S35 2K DCI (2048 x 1080 Crop)", w: 23.80, h: 13.40 }
                 ]
             },
             arri_alexa_mini_lf: {
                 label: "ARRI ALEXA Mini LF",
                 modes: [
-                    { name: "4.5K 3:2 Open Gate", w: 36.70, h: 25.54 },
-                    { name: "4.5K LF 2.39:1 Scope", w: 36.70, h: 15.31 },
-                    { name: "4K UHD 16:9", w: 31.68, h: 17.82 },
-                    { name: "2.8K 1:1 Anamorphic", w: 25.54, h: 25.54 }
+                    { name: "4.5K 3:2 Open Gate (4480 x 3096)", w: 36.70, h: 25.54 },
+                    { name: "4.5K LF 2.39:1 Scope (4480 x 1872)", w: 36.70, h: 15.31 },
+                    { name: "4K UHD 16:9 (3840 x 2160)", w: 31.68, h: 17.82 },
+                    { name: "2.8K 1:1 Anamorphic (2880 x 2880)", w: 25.54, h: 25.54 }
                 ]
             },
             arri_alexa_35: {
                 label: "ARRI ALEXA 35",
                 modes: [
-                    { name: "4.6K 3:2 Open Gate", w: 27.99, h: 19.22 },
-                    { name: "4.6K 16:9", w: 27.99, h: 15.74 },
-                    { name: "4K 2:1", w: 25.60, h: 12.80 },
-                    { name: "3.3K 6:5 Anamorphic", w: 22.12, h: 18.43 },
-                    { name: "2.7K 4:3 Anamorphic", w: 21.12, h: 15.84 }
+                    { name: "4.6K 3:2 Open Gate (4608 x 3164)", w: 27.99, h: 19.22 },
+                    { name: "4.6K 16:9 (4608 x 2592)", w: 27.99, h: 15.74 },
+                    { name: "4K 2:1 (4096 x 2048)", w: 25.60, h: 12.80 },
+                    { name: "3.3K 6:5 Anamorphic (3328 x 2790)", w: 22.12, h: 18.43 },
+                    { name: "2.7K 4:3 Anamorphic (2743 x 2058)", w: 21.12, h: 15.84 }
                 ]
             },
             sony_venice_2: {
                 label: "Sony Venice 2 (8K)",
                 modes: [
-                    { name: "8.6K 3:2 Open Gate", w: 35.90, h: 24.00 },
-                    { name: "8.2K 17:9", w: 35.90, h: 19.00 },
-                    { name: "5.8K 6:5 Anamorphic", w: 24.70, h: 20.60 },
-                    { name: "5.8K 4:3 Anamorphic", w: 24.70, h: 18.50 }
+                    { name: "8.6K 3:2 Open Gate (8640 x 5760)", w: 35.90, h: 24.00 },
+                    { name: "8.2K 17:9 (8192 x 4320)", w: 35.90, h: 19.00 },
+                    { name: "5.8K 6:5 Anamorphic (5760 x 4800)", w: 24.70, h: 20.60 },
+                    { name: "5.8K 4:3 Anamorphic (5760 x 4320)", w: 24.70, h: 18.50 }
                 ]
             },
             red_v_raptor: {
                 label: "RED V-Raptor 8K VV",
                 modes: [
-                    { name: "8K 17:9 Full Format", w: 40.96, h: 21.60 },
-                    { name: "8K 2:1", w: 40.96, h: 20.48 },
-                    { name: "8K 16:9", w: 38.40, h: 21.60 },
-                    { name: "8K 6:5 Anamorphic", w: 25.92, h: 21.60 },
-                    { name: "6K S35 17:9 Crop", w: 30.72, h: 16.20 }
+                    { name: "8K 17:9 Full Format (8192 x 4320)", w: 40.96, h: 21.60 },
+                    { name: "8K 2:1 (8192 x 4096)", w: 40.96, h: 20.48 },
+                    { name: "8K 16:9 (7680 x 4320)", w: 38.40, h: 21.60 },
+                    { name: "8K 6:5 Anamorphic (5184 x 4320)", w: 25.92, h: 21.60 },
+                    { name: "6K S35 17:9 Crop (6144 x 3240)", w: 30.72, h: 16.20 }
                 ]
             },
             canon_r6m3: {
                 label: "Canon EOS R6 Mark III",
                 modes: [
-                    { name: "FF 3:2 Open Gate", w: 35.90, h: 23.90 },
-                    { name: "FF 16:9 4K UHD", w: 35.90, h: 20.19 },
-                    { name: "S35 16:9 Crop", w: 22.50, h: 12.65 }
+                    { name: "FF 3:2 Open Gate (6000 x 4000)", w: 35.90, h: 23.90 },
+                    { name: "FF 16:9 4K UHD (3840 x 2160)", w: 35.90, h: 20.19 },
+                    { name: "S35 16:9 Crop (3840 x 2160)", w: 22.50, h: 12.65 }
                 ]
             },
             iphone16pro: {
                 label: "Apple iPhone 16 Pro",
                 modes: [
-                    { name: "Main Sensor 4:3", w: 10.07, h: 7.56 },
-                    { name: "Main Sensor 16:9 Video", w: 10.07, h: 5.66 }
+                    { name: "Main Sensor 4:3 (8064 x 6048)", w: 10.07, h: 7.56 },
+                    { name: "Main Sensor 16:9 Video (3840 x 2160)", w: 10.07, h: 5.66 }
                 ]
             }
         };
@@ -958,7 +958,7 @@
                 const projectShots = shotsReq.result.filter(s => s.project === projectName);
 
                 const bundle = {
-                    atlas_version: "2.2",
+                    atlas_version: "2.3",
                     project: projectMeta,
                     shots: projectShots,
                     exported_at: new Date().toLocaleString()
@@ -1263,7 +1263,7 @@
                         pdf.setFont("helvetica", "normal");
                         pdf.setFontSize(9);
                         pdf.setTextColor(80);
-                        pdf.text(`Camera: ${shot.camera}  |  HFOV: ${shot.hfov}  |  Aspect Ratio: ${shot.aspect}  |  Captured: ${shot.timestamp}`, 40, yPos + imgHeight + 26);
+                        pdf.text(`Camera/Mode: ${shot.camera}  |  HFOV: ${shot.hfov}  |  Aspect Ratio: ${shot.aspect}  |  Captured: ${shot.timestamp}`, 40, yPos + imgHeight + 26);
 
                         yPos += imgHeight + 45;
                     }
@@ -1352,7 +1352,7 @@
                             <img src="${shot.image}" />
                             <div style="font-size:12px; margin-top:8px; line-height:1.4; color:#111;">
                                 <strong>Shot #${idx + 1}</strong> — ${shot.series} ${shot.focal} (Close Focus: ${shot.closeFocus || 'N/A'})<br/>
-                                <strong>Camera:</strong> ${shot.camera}<br/>
+                                <strong>Camera/Readout:</strong> ${shot.camera}<br/>
                                 <strong>HFOV / Aspect:</strong> ${shot.hfov} | ${shot.aspect}<br/>
                                 <span style="color:#666; font-size:10px;">${shot.timestamp}</span>
                             </div>
@@ -1440,7 +1440,7 @@
                 h: drawH
             };
 
-            // Render camera stream
+            // Render camera stream with optical desqueeze compensation
             if (cameraActive && video.readyState === video.HAVE_ENOUGH_DATA) {
                 ctx.save();
 
@@ -1449,9 +1449,17 @@
                 ctx.clip();
 
                 const zoomFactor = Math.max(1, effectiveFocal / IPHONE_BASE_FOCAL);
+                const videoAspect = video.videoWidth / video.videoHeight;
 
-                const srcW = video.videoWidth / zoomFactor;
-                const srcH = video.videoHeight / zoomFactor;
+                // Correct for optical squeeze on spherical feed
+                let srcW = video.videoWidth / zoomFactor;
+                let srcH = (srcW / targetWidthRatio) * videoAspect;
+
+                if (srcH > video.videoHeight / zoomFactor) {
+                    srcH = video.videoHeight / zoomFactor;
+                    srcW = (srcH * targetWidthRatio) / videoAspect;
+                }
+
                 const srcX = (video.videoWidth - srcW) / 2;
                 const srcY = (video.videoHeight - srcH) / 2;
 
