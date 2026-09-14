@@ -958,7 +958,7 @@
                 const projectShots = shotsReq.result.filter(s => s.project === projectName);
 
                 const bundle = {
-                    atlas_version: "2.3",
+                    atlas_version: "2.4",
                     project: projectMeta,
                     shots: projectShots,
                     exported_at: new Date().toLocaleString()
@@ -1440,7 +1440,7 @@
                 h: drawH
             };
 
-            // Render camera stream with optical desqueeze compensation
+            // Render camera stream with 1:1 pixel aspect ratio preservation
             if (cameraActive && video.readyState === video.HAVE_ENOUGH_DATA) {
                 ctx.save();
 
@@ -1448,20 +1448,25 @@
                 ctx.rect(frameRect.x, frameRect.y, frameRect.w, frameRect.h);
                 ctx.clip();
 
-                const zoomFactor = Math.max(1, effectiveFocal / IPHONE_BASE_FOCAL);
-                const videoAspect = video.videoWidth / video.videoHeight;
+                const vWidth = video.videoWidth;
+                const vHeight = video.videoHeight;
 
-                // Correct for optical squeeze on spherical feed
-                let srcW = video.videoWidth / zoomFactor;
-                let srcH = (srcW / targetWidthRatio) * videoAspect;
+                // Calculate source crop dimensions to maintain 1:1 spatial geometry
+                let srcW = vWidth;
+                let srcH = vWidth / targetWidthRatio;
 
-                if (srcH > video.videoHeight / zoomFactor) {
-                    srcH = video.videoHeight / zoomFactor;
-                    srcW = (srcH * targetWidthRatio) / videoAspect;
+                if (srcH > vHeight) {
+                    srcH = vHeight;
+                    srcW = vHeight * targetWidthRatio;
                 }
 
-                const srcX = (video.videoWidth - srcW) / 2;
-                const srcY = (video.videoHeight - srcH) / 2;
+                // Apply digital focal zoom relative to mobile camera FOV
+                const zoomFactor = Math.max(1, effectiveFocal / IPHONE_BASE_FOCAL);
+                srcW /= zoomFactor;
+                srcH /= zoomFactor;
+
+                const srcX = (vWidth - srcW) / 2;
+                const srcY = (vHeight - srcH) / 2;
 
                 if (facingMode === "user") {
                     ctx.translate(canvas.width, 0);
